@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Olay Takibi</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      font-family: 'Inter', sans-serif;
+      background-color: #111;
+      color: #eee;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .controls {
+      margin-bottom: 30px;
+    }
+    select {
+      padding: 8px;
+      margin-right: 12px;
+      font-size: 14px;
+      background: #222;
+      color: #eee;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
+    .event {
+      margin-bottom: 24px;
+      border-left: 3px solid #eee;
+      padding-left: 16px;
+    }
+    .date {
+      font-weight: 600;
+      color: #ccc;
+      font-size: 14px;
+    }
+    .text-a {
+      font-size: 16px;
+      margin: 4px 0;
+    }
+    .text-b {
+      font-size: 14px;
+      color: #aaa;
+    }
+    .category {
+      font-size: 12px;
+      color: #999;
+    }
+    a {
+      color: #0af;
+    }
+  </style>
+</head>
+<body>
+  <h1>Olay Takibi</h1>
+
+  <div class="controls">
+    <select id="sort-by">
+      <option value="date">Tarihe göre sırala</option>
+      <option value="category">Kategoriye göre sırala</option>
+    </select>
+    <select id="filter-category">
+      <option value="all">Tüm Kategoriler</option>
+    </select>
+  </div>
+
+  <div id="events"></div>
+
+  <script>
+    const SHEET_ID = '1l80dw9TF-xJwNRERpIljTY7LXqZu1bafDky-SsF1k8U';
+    const SHEET_NAME = 'Sayfa1';
+    const url = `https://opensheet.elk.sh/${SHEET_ID}/${SHEET_NAME}`;
+
+    let allEvents = [];
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        allEvents = data.map(row => ({
+          date: row.Tarih,
+          textA: row.Metin,
+          textB: row.ikinci,
+          link: row.Link,
+          category: row.Kategori
+        }));
+        populateCategoryFilter();
+        renderEvents();
+      });
+
+    function populateCategoryFilter() {
+      const select = document.getElementById('filter-category');
+      const categories = [...new Set(allEvents.map(e => e.category).filter(Boolean))];
+      categories.sort();
+      categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderEvents() {
+      const sortBy = document.getElementById('sort-by').value;
+      const selectedCategory = document.getElementById('filter-category').value;
+      let filtered = [...allEvents];
+
+      if (selectedCategory !== 'all') {
+        filtered = filtered.filter(e => e.category === selectedCategory);
+      }
+
+      if (sortBy === 'date') {
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+      } else if (sortBy === 'category') {
+        filtered.sort((a, b) => a.category.localeCompare(b.category));
+      }
+
+      const container = document.getElementById('events');
+      container.innerHTML = '';
+
+      filtered.forEach(event => {
+        const div = document.createElement('div');
+        div.className = 'event';
+        div.innerHTML = `
+          <div class="date">${event.date}</div>
+          <div class="text-a">${event.textA}</div>
+          ${event.textB ? `<div class="text-b">${event.textB}</div>` : ''}
+          ${event.link ? `<div class="text-b"><a href="${event.link}" target="_blank">Habere Git</a></div>` : ''}
+          ${event.category ? `<div class="category">Kategori: ${event.category}</div>` : ''}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById('sort-by').addEventListener('change', renderEvents);
+    document.getElementById('filter-category').addEventListener('change', renderEvents);
+  </script>
+</body>
+</html>
